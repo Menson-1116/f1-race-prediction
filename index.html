@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F1 Race Podium Prediction: A Machine Learning Approach</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* ===== Reset & Base ===== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0f0a0a;
+            --bg-secondary: #1a1111;
+            --bg-card: #1f1414;
+            --bg-card-hover: #2a1a1a;
+            --accent: #e11d48;
+            --accent-light: #fb7185;
+            --accent-dark: #be123c;
+            --accent-glow: rgba(225, 29, 72, 0.15);
+            --text-primary: #fff1f2;
+            --text-secondary: #bfa3a3;
+            --text-muted: #8a6b6b;
+            --border: rgba(225, 29, 72, 0.15);
+            --border-hover: rgba(225, 29, 72, 0.35);
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --max-width: 1200px;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: var(--font-main);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* ===== Scrollbar ===== */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--accent-dark); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        /* ===== Navigation ===== */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 1rem 2rem;
+            background: rgba(15, 10, 10, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .nav-logo {
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-logo svg { width: 24px; height: 24px; }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover { color: var(--accent); }
+
+        /* ===== Hero ===== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 6rem 2rem 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 50% 50%, rgba(225, 29, 72, 0.06) 0%, transparent 60%);
+            animation: heroPulse 8s ease-in-out infinite;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: linear-gradient(to top, var(--bg-primary), transparent);
+        }
+
+        @keyframes heroPulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+
+        /* Speed lines overlay */
+        .hero-pattern {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 79px,
+                    rgba(225, 29, 72, 0.03) 79px,
+                    rgba(225, 29, 72, 0.03) 80px
+                );
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 900px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1.2rem;
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--accent);
+            background: rgba(225, 29, 72, 0.05);
+            margin-bottom: 2rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .hero-badge .dot {
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: dotPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes dotPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        .hero h1 {
+            font-size: clamp(2.2rem, 5vw, 3.5rem);
+            font-weight: 900;
+            line-height: 1.15;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .hero h1 .highlight {
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto 2.5rem;
+            font-weight: 300;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 3rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .hero-stat {
+            text-align: center;
+        }
+
+        .hero-stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--accent);
+            font-family: var(--font-mono);
+        }
+
+        .hero-stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 0.25rem;
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 3rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            animation: scrollBounce 2s ease-in-out infinite;
+        }
+
+        .scroll-indicator svg { width: 20px; height: 20px; stroke: var(--text-muted); }
+
+        @keyframes scrollBounce {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(8px); }
+        }
+
+        /* ===== Sections ===== */
+        .section {
+            padding: 6rem 2rem;
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+
+        .section-header {
+            margin-bottom: 3.5rem;
+        }
+
+        .section-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--accent);
+            margin-bottom: 1rem;
+        }
+
+        .section-label::before {
+            content: '';
+            width: 24px;
+            height: 2px;
+            background: var(--accent);
+        }
+
+        .section-title {
+            font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 1rem;
+        }
+
+        .section-desc {
+            color: var(--text-secondary);
+            max-width: 600px;
+            font-weight: 300;
+        }
+
+        /* ===== Key Findings ===== */
+        .findings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .finding-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .finding-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-light));
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .finding-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-4px);
+            background: var(--bg-card-hover);
+        }
+
+        .finding-card:hover::before { opacity: 1; }
+
+        .finding-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--accent-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.25rem;
+            font-size: 1.4rem;
+        }
+
+        .finding-card h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+
+        .finding-card p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* ===== Model Performance ===== */
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .perf-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .perf-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-3px);
+        }
+
+        .perf-card .model-name {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .perf-card .model-score {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent);
+            font-family: var(--font-mono);
+        }
+
+        .perf-card .model-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* ===== Figure Grid ===== */
+        .figures-section {
+            background: var(--bg-secondary);
+            padding: 6rem 2rem;
+        }
+
+        .figures-inner {
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+
+        .figure-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .figure-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .figure-card:hover {
+            border-color: var(--border-hover);
+            transform: scale(1.02);
+            box-shadow: 0 20px 60px rgba(225, 29, 72, 0.08);
+        }
+
+        .figure-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .figure-img-wrap {
+            overflow: hidden;
+            position: relative;
+        }
+
+        .figure-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .figure-card:hover img {
+            transform: scale(1.05);
+        }
+
+        .figure-caption {
+            padding: 1.25rem 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .figure-caption h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .figure-caption p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* ===== Methodology ===== */
+        .method-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .method-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .method-card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .method-step {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+        }
+
+        .method-card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+
+        .method-card p {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* ===== Tech Stack ===== */
+        .tech-section {
+            background: var(--bg-secondary);
+            padding: 6rem 2rem;
+        }
+
+        .tech-inner {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .tech-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2.5rem;
+        }
+
+        .tech-tag {
+            padding: 0.6rem 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .tech-tag:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        /* ===== Footer ===== */
+        .footer {
+            padding: 3rem 2rem;
+            text-align: center;
+            border-top: 1px solid var(--border);
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+
+        .footer p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer a:hover { color: var(--accent-light); }
+
+        /* ===== Animations ===== */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .fade-in-delay-1 { transition-delay: 0.1s; }
+        .fade-in-delay-2 { transition-delay: 0.2s; }
+        .fade-in-delay-3 { transition-delay: 0.3s; }
+        .fade-in-delay-4 { transition-delay: 0.4s; }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 768px) {
+            .nav { padding: 0.75rem 1rem; }
+            .nav-links { display: none; }
+            .hero { padding: 5rem 1.5rem 3rem; min-height: auto; }
+            .hero-stats { gap: 2rem; }
+            .section { padding: 4rem 1.5rem; }
+            .figures-section { padding: 4rem 1rem; }
+            .figure-grid { grid-template-columns: 1fr; }
+            .findings-grid { grid-template-columns: 1fr; }
+            .performance-grid { grid-template-columns: repeat(2, 1fr); }
+            .tech-section { padding: 4rem 1.5rem; }
+            .scroll-indicator { display: none; }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 { font-size: 1.8rem; }
+            .hero-stat-value { font-size: 2rem; }
+            .hero-stats { flex-direction: column; gap: 1.5rem; }
+            .performance-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 16V8a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v8"/>
+                <path d="M5 16h14v3a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-3z"/>
+                <circle cx="9" cy="20" r="1"/>
+                <circle cx="15" cy="20" r="1"/>
+            </svg>
+            F1 Predictions
+        </div>
+        <ul class="nav-links">
+            <li><a href="#findings">Findings</a></li>
+            <li><a href="#performance">Models</a></li>
+            <li><a href="#analysis">Analysis</a></li>
+            <li><a href="#methodology">Methodology</a></li>
+            <li><a href="#tech">Tech Stack</a></li>
+        </ul>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-pattern"></div>
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="dot"></span>
+                Machine Learning Project
+            </div>
+            <h1>
+                F1 Race Podium Prediction:<br>
+                <span class="highlight">A Machine Learning Approach</span>
+            </h1>
+            <p class="hero-subtitle">
+                Leveraging historical race data, driver statistics, constructor performance,
+                and circuit characteristics to predict Formula 1 podium finishes using
+                ensemble classification models and advanced feature engineering.
+            </p>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <div class="hero-stat-value">4</div>
+                    <div class="hero-stat-label">Models Compared</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value">14</div>
+                    <div class="hero-stat-label">Visualizations</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value">20+</div>
+                    <div class="hero-stat-label">Features Engineered</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value">SMOTE</div>
+                    <div class="hero-stat-label">Imbalance Handling</div>
+                </div>
+            </div>
+        </div>
+        <div class="scroll-indicator">
+            Scroll to explore
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14M19 12l-7 7-7-7"/>
+            </svg>
+        </div>
+    </section>
+
+    <!-- Key Findings -->
+    <section class="section" id="findings">
+        <div class="section-header fade-in">
+            <div class="section-label">Key Findings</div>
+            <h2 class="section-title">What the Models Discovered</h2>
+            <p class="section-desc">
+                Four critical insights from training and evaluating multiple machine learning models on F1 podium prediction.
+            </p>
+        </div>
+        <div class="findings-grid">
+            <div class="finding-card fade-in fade-in-delay-1">
+                <div class="finding-icon">&#127942;</div>
+                <h3>Grid Position Is the Strongest Predictor</h3>
+                <p>
+                    Starting from pole position gives drivers a roughly 50% chance of finishing
+                    on the podium. Drivers starting in the top 3 grid positions capture over 80%
+                    of all podium finishes, making grid position the single most influential feature
+                    across all models.
+                </p>
+            </div>
+            <div class="finding-card fade-in fade-in-delay-2">
+                <div class="finding-icon">&#128640;</div>
+                <h3>Constructor Quality Dominates Driver Skill</h3>
+                <p>
+                    Top-tier constructors (Mercedes, Red Bull, Ferrari) account for the vast majority
+                    of podiums. Constructor advantage outweighs individual driver talent in the
+                    feature importance rankings, highlighting that F1 remains fundamentally an
+                    engineering-driven sport.
+                </p>
+            </div>
+            <div class="finding-card fade-in fade-in-delay-3">
+                <div class="finding-icon">&#127754;</div>
+                <h3>Circuit Type Significantly Affects Outcomes</h3>
+                <p>
+                    Street circuits, permanent tracks, and hybrid layouts show distinctly different
+                    podium probability distributions. Street circuits tend to favor established teams
+                    with strong qualifying pace, while unconventional layouts occasionally produce
+                    surprise results.
+                </p>
+            </div>
+            <div class="finding-card fade-in fade-in-delay-4">
+                <div class="finding-icon">&#9889;</div>
+                <h3>Gradient Boosting Delivers Best Performance</h3>
+                <p>
+                    Among the four models tested, Gradient Boosting (XGBoost) achieved the highest
+                    AUC-ROC score, demonstrating superior ability to capture non-linear relationships
+                    in F1 race data. SMOTE oversampling was critical for handling the inherent class
+                    imbalance in podium outcomes.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Model Performance -->
+    <section class="section" id="performance">
+        <div class="section-header fade-in">
+            <div class="section-label">Model Comparison</div>
+            <h2 class="section-title">Predictive Performance</h2>
+            <p class="section-desc">
+                Evaluating classification models on their ability to predict podium finishes, measured by AUC-ROC.
+            </p>
+        </div>
+        <div class="performance-grid fade-in">
+            <div class="perf-card">
+                <div class="model-name">Logistic Regression</div>
+                <div class="model-score">0.89</div>
+                <div class="model-label">AUC-ROC</div>
+            </div>
+            <div class="perf-card">
+                <div class="model-name">Random Forest</div>
+                <div class="model-score">0.92</div>
+                <div class="model-label">AUC-ROC</div>
+            </div>
+            <div class="perf-card">
+                <div class="model-name">Gradient Boosting</div>
+                <div class="model-score">0.94</div>
+                <div class="model-label">AUC-ROC (Best)</div>
+            </div>
+            <div class="perf-card">
+                <div class="model-name">XGBoost</div>
+                <div class="model-score">0.93</div>
+                <div class="model-label">AUC-ROC</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Visualizations -->
+    <section class="figures-section" id="analysis">
+        <div class="figures-inner">
+            <div class="section-header fade-in">
+                <div class="section-label">Visualizations</div>
+                <h2 class="section-title">Exploratory &amp; Model Analysis</h2>
+                <p class="section-desc">
+                    A comprehensive visual walkthrough covering target distribution, feature analysis,
+                    model evaluation, and performance insights across constructors and circuits.
+                </p>
+            </div>
+
+            <div class="figure-grid">
+                <!-- 1. Target Distribution -->
+                <div class="figure-card fade-in">
+                    <div class="figure-img-wrap">
+                        <img src="outputs/figures/01_target_distribution.png" alt="Target Distribution" loading="lazy">
+                    </div>
+                    <div class="figure-caption">
+                        <h4>Target Distribution</h4>
+                        <p>Class imbalance analysis of podium vs non-podium finishes</p>
+                    </div>
+                </div>
+
+                <!-- 2. Podiums by Constructor -->
+                <div class="figure-card fade-in">
+                    <div class="figure-img-wrap">
+                        <img src="outputs/figures/02_podiums_by_constructor.png" alt="Podiums by Constructor" loading="lazy">
+                    </div>
+                    <div class="figure-caption">
+                        <h4>Total Podiums by Constructor</h4>
+                        <p>Historical podium count for each F1 constructor team</p>
+                    </div>
+                </div>
+
+                <!-- 3. Podium Rate by Driver -->
+                <div class="figure-card fade-in">
+                    <div class="figure-img-wrap">
+                        <img src="outputs/figures/03_podium_rate_by_driver.png" alt="Podium Rate by Driver" loading="lazy">
+                    </div>
+                    <div class="figure-caption">
+                        <h4>Podium Rate by Driver</h4>
+                        <p>Percentage of races resulting in a podium finish per driver</p>
+                    </div>
+                </div>
+
+                <!-- 4. Grid Position vs Podium -->
+                <div class="figure-card fade-in">
+                    <div class="figure-img-wrap">
+                        <img src="outputs/figures/04_grid_position_vs_podium.png" alt="Grid Position vs Podium" loading="lazy">
+                    </div>
+                    <div class="figure-caption">
+                        <h4>Grid Position vs Podium Probability</h4>
+                        <p>How starting position correlates with finishing on the podium</p>
+                    </div>
+                </div>
+
+                <!-- 5. Podium Rate by Circuit Type -->
+                <div class="figure-card fade-in">
+                    <div class="figure-img-wrap">
+                        <img src="outputs/figures/05_podium_rate_by_circuit_type.png" alt="Podium Rate by Circuit Type" loading="lazy">
+                    </div>
+                    <div class="figure-caption">
+                        <h4>Podium Rate by Circuit Type</h4>
+                        <p>Comparing podium probability across street, permanent, and hybrid circuits</p>
+                    </div>
+                </div>
+
+                <!-- 6. Podium Rate by Weather -->
+                <div class="figure-card fade-in">
+                    <div class="figure-img-wrap">
+                        <img src="outputs/figures/06_podium_rate_by_weather.png" alt="Podium Rate by Weather" loading="lazy">
+                    </div>
+                    <div class="figure-caption">
+                        <h4>Podium Rate by Weather Conditions</h4>
+                        <p>Impact of weather conditions on podium outcome distributions</p>
+                    </div>
+                </div>
+
+                <!-- 7. Constructor Performance Seasons -->
+                <div class="figure-card fade-in full-width">
+                    <div class="figure-img-wrap">
+                        <img src="outputs/figures/07_constructor_performance_seasons.png" alt="Constructor Performance Across Seasons" loading="lazy">
+                    </div>
+                    <div class="figure-caption">
+                        <h4>Constructor Performance Across Seasons</h4>
+                        <p>Longitudinal view of constructor competitiveness over multiple seasons</p>
+                    </div>
+                </div>
+
+                <!-- 8. Model Comparison -->
+                <div class="figure-card fade-in">
+                    <div class="figure-img-wrap">
+                        <img src="outputs/figures/08_model_comparison.png" alt="Model Comparison" loading="lazy">
+                    </div>
+                    <div class="figure-caption">
+                        <h4>Model Comparison</h4>
+                        <p>Side-by-side evaluation of classification model performance metrics</p>
+                    </div>
+                </div>
+
+                <!-- 9. Confusion Matrix -->
+                <div class="figure-card fade-in">
+                    <div class="figure-img-wrap">
+                        <img src="outputs/figures/09_confusion_matrix.png" alt="Confusion Matrix" loading="lazy">
+                    </div>
+                    <div class="figure-caption">
+                        <h4>Confusion Matrix</h4>
+                        <p>Classification error analysis for the best-performing model</p>
+                    </div>
+                </div>
+
+                <!-- 10. ROC Curves -->
+                <div class="figure-card fade-in">
+                    <div class="figure-img-wrap">
+                        <img src="outputs/figures/10_roc_curves.png" alt="ROC Curves" loading="lazy">
+                    </div>
+                    <div class="figure-caption">
+                        <h4>ROC Curves</h4>
+                        <p>Receiver Operating Characteristic curves for all trained models</p>
+                    </div>
+                </div>
+
+                <!-- 11. Feature Importance -->
+                <div class="figure-card fade-in">
+                    <div class="figure-img-wrap">
+                        <img src="outputs/figures/11_feature_importance.png" alt="Feature Importance" loading="lazy">
+                    </div>
+                    <div class="figure-caption">
+                        <h4>Feature Importance</h4>
+                        <p>Ranking of the most predictive features for podium prediction</p>
+                    </div>
+                </div>
+
+                <!-- 12. Constructor Advantage -->
+                <div class="figure-card fade-in">
+                    <div class="figure-img-wrap">
+                        <img src="outputs/figures/12_constructor_advantage.png" alt="Constructor Advantage" loading="lazy">
+                    </div>
+                    <div class="figure-caption">
+                        <h4>Constructor Advantage</h4>
+                        <p>Quantifying the performance edge held by top-tier constructors</p>
+                    </div>
+                </div>
+
+                <!-- 13. Circuit Type Effects -->
+                <div class="figure-card fade-in">
+                    <div class="figure-img-wrap">
+                        <img src="outputs/figures/13_circuit_type_effects.png" alt="Circuit Type Effects" loading="lazy">
+                    </div>
+                    <div class="figure-caption">
+                        <h4>Circuit Type Effects</h4>
+                        <p>How different circuit layouts influence race outcomes and podium probability</p>
+                    </div>
+                </div>
+
+                <!-- 14. Top Performers Era -->
+                <div class="figure-card fade-in">
+                    <div class="figure-img-wrap">
+                        <img src="outputs/figures/14_top_performers_era.png" alt="Top Performers by Era" loading="lazy">
+                    </div>
+                    <div class="figure-caption">
+                        <h4>Top Performers by Era</h4>
+                        <p>Dominant drivers and constructors across different F1 eras</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Methodology -->
+    <section class="section" id="methodology">
+        <div class="section-header fade-in">
+            <div class="section-label">Methodology</div>
+            <h2 class="section-title">Machine Learning Pipeline</h2>
+            <p class="section-desc">
+                An end-to-end pipeline from data collection and feature engineering through model training,
+                evaluation, and interpretability analysis.
+            </p>
+        </div>
+        <div class="method-grid">
+            <div class="method-card fade-in fade-in-delay-1">
+                <div class="method-step">01 / DATA PREP</div>
+                <h3>Feature Engineering &amp; Preprocessing</h3>
+                <p>
+                    Engineered features from raw race data including driver form metrics,
+                    constructor historical performance, circuit characteristics, and weather
+                    conditions. Applied standard scaling and handled class imbalance using
+                    SMOTE (Synthetic Minority Over-sampling Technique).
+                </p>
+            </div>
+            <div class="method-card fade-in fade-in-delay-2">
+                <div class="method-step">02 / CLASSIFICATION</div>
+                <h3>Logistic Regression &amp; Random Forest</h3>
+                <p>
+                    Built a Logistic Regression baseline model for interpretable probability
+                    estimates, then trained a Random Forest ensemble for capturing non-linear
+                    feature interactions. Both models include hyperparameter tuning via
+                    cross-validation.
+                </p>
+            </div>
+            <div class="method-card fade-in fade-in-delay-3">
+                <div class="method-step">03 / ENSEMBLE</div>
+                <h3>Gradient Boosting &amp; XGBoost</h3>
+                <p>
+                    Implemented Gradient Boosting and XGBoost classifiers for maximum predictive
+                    power. These sequential ensemble methods proved most effective at handling
+                    the complex, non-linear relationships inherent in F1 race data.
+                </p>
+            </div>
+            <div class="method-card fade-in fade-in-delay-4">
+                <div class="method-step">04 / EVALUATION</div>
+                <h3>Comprehensive Model Evaluation</h3>
+                <p>
+                    Evaluated models using AUC-ROC, confusion matrices, precision-recall curves,
+                    and feature importance analysis. The evaluation framework ensures robust
+                    comparison across models and guards against overfitting through stratified
+                    cross-validation.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tech Stack -->
+    <section class="tech-section" id="tech">
+        <div class="tech-inner">
+            <div class="section-header fade-in" style="text-align:center;">
+                <div class="section-label" style="justify-content:center;">Technology</div>
+                <h2 class="section-title">Tech Stack</h2>
+                <p class="section-desc" style="margin:0 auto;">
+                    A Python-first machine learning toolkit for data processing, model training, and visualization.
+                </p>
+            </div>
+            <div class="tech-tags fade-in">
+                <span class="tech-tag">Python</span>
+                <span class="tech-tag">Pandas</span>
+                <span class="tech-tag">Scikit-learn</span>
+                <span class="tech-tag">Matplotlib</span>
+                <span class="tech-tag">Seaborn</span>
+                <span class="tech-tag">XGBoost</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>
+            F1 Race Podium Prediction &mdash; A machine learning project &mdash;
+            Built with Python &amp; deployed via <a href="https://pages.github.com" target="_blank" rel="noopener">GitHub Pages</a>
+        </p>
+    </footer>
+
+    <!-- Scroll Animation Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var observer = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            });
+
+            document.querySelectorAll('.fade-in').forEach(function(el) {
+                observer.observe(el);
+            });
+        });
+    </script>
+</body>
+</html>
